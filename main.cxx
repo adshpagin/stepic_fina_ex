@@ -4,6 +4,18 @@
 #include <algorithm>
 #include <unistd.h>
 
+#include "tcp.hxx"
+
+class EchoHandler : public TCP::TCPServer::RequestHandler {
+public:
+  virtual void onRequest(const TCP::MsgData &req, TCP::MsgData &resp);
+};
+
+void EchoHandler::onRequest(const TCP::MsgData &req, TCP::MsgData &resp) {
+  std::cout << "EchoHandler::onRequest. Msg: " << req.str() << std::endl;
+  resp << "Test message :)" << std::endl;
+}
+
 int main(int argc, char **argv) {
 
   std::string ip;
@@ -28,6 +40,11 @@ int main(int argc, char **argv) {
   };
 
   std::cout << "Host: " << ip << ":" << port << ", files folder: " << files_folder << std::endl;
+
+  EchoHandler *h = new EchoHandler();
+  TCP::TCPServer::RequestHandlerPtr h_ptr = TCP::TCPServer::RequestHandlerPtr(h);
+
+  TCP::TCPServer tcpServer(h_ptr);
 
   return 0;
 }
