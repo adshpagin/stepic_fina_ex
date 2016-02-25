@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include "tcp.hxx"
+#include "http.hxx"
 
 class EchoHandler : public TCP::TCPServer::RequestHandler {
 public:
@@ -41,10 +42,22 @@ int main(int argc, char **argv) {
 
   std::cout << "Host: " << ip << ":" << port << ", files folder: " << files_folder << std::endl;
 
-  EchoHandler *h = new EchoHandler();
-  TCP::TCPServer::RequestHandlerPtr h_ptr = TCP::TCPServer::RequestHandlerPtr(h);
+  // EchoHandler *h = new EchoHandler();
+  // TCP::TCPServer::RequestHandlerPtr h_ptr = TCP::TCPServer::RequestHandlerPtr(h);
 
-  TCP::TCPServer tcpServer(h_ptr);
+  // TCP::TCPServer tcpServer(h_ptr);
+  
+  std::stringstream ss;
+  ss << "GET /path/file.html?param1=123&param2=456 HTTP/1.0" << std::endl;
+  // ss << "GET /path/file.html HTTP/1.0" << std::endl;
+  ss << "From: someuser@jmarshall.com" << std::endl;
+  ss << "User-Agent: HTTPTool/1.0" << std::endl << std::endl;
+
+  HTTP::Request req1(ss.str());
+
+  std::cout << "Meth: " << (int)req1.m_method << "|" << std::endl;
+  std::cout << "Path: " << req1.m_path << "|" << std::endl;
+  std::cout << "Params: " << req1.m_params << "|" << std::endl;
 
   return 0;
 }
