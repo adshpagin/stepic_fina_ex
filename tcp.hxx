@@ -9,9 +9,9 @@ namespace TCP {
 
   typedef std::stringstream MsgData;
 
-  class TCPServerImpl;
+  class ServerImpl;
 
-  class TCPServer {
+  class Server {
   public:
     class RequestHandler {
     public:
@@ -19,11 +19,11 @@ namespace TCP {
     };
     typedef std::shared_ptr<RequestHandler> RequestHandlerPtr; 
 
-    TCPServer(RequestHandlerPtr handler);
-    ~TCPServer();
+    Server(RequestHandlerPtr handler);
+    ~Server();
   private:
-    typedef std::unique_ptr<TCPServerImpl> TCPServerImplPtr;
-    TCPServerImplPtr m_tcpServerImpl;
+    typedef std::unique_ptr<ServerImpl> ServerImplPtr;
+    ServerImplPtr m_tcpServerImpl;
   };
 
 }

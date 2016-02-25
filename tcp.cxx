@@ -12,9 +12,9 @@ void writeCB(uv_write_t*, int);
 
 namespace TCP {
 
-  class TCPServerImpl {
+  class ServerImpl {
   public:
-    TCPServerImpl(TCPServer::RequestHandlerPtr handler);
+    ServerImpl(Server::RequestHandlerPtr handler);
     void log(const std::string &msg);
   private:
 
@@ -23,7 +23,7 @@ namespace TCP {
       Request(const char *buf,
               unsigned len,
               uv_stream_t *stream,
-              TCPServer::RequestHandlerPtr handler);
+              Server::RequestHandlerPtr handler);
       void callHandler();
     private:
       MsgData      m_requestData;
@@ -31,7 +31,7 @@ namespace TCP {
       uv_stream_t *m_stream;
       char        *m_bufBase;
 
-      TCPServer::RequestHandlerPtr m_handler;
+      Server::RequestHandlerPtr m_handler;
       
       friend void ::after_work(uv_work_t *, int);
       friend void ::writeCB(uv_write_t*, int);
@@ -40,7 +40,7 @@ namespace TCP {
     uv_loop_t *m_loop;
     uv_tcp_t   m_server;
 
-    TCPServer::RequestHandlerPtr m_handler;
+    Server::RequestHandlerPtr m_handler;
 
     friend void ::uvConnectionCB(uv_stream_t *, int);
     friend void ::readCB(uv_stream_t *, ssize_t, const uv_buf_t *);
@@ -52,12 +52,12 @@ namespace TCP {
 }
 
 void worker_proc(uv_work_t *req) {
-  TCP::TCPServerImpl::Request *reqObj = static_cast<TCP::TCPServerImpl::Request *>(req->data);
+  TCP::ServerImpl::Request *reqObj = static_cast<TCP::ServerImpl::Request *>(req->data);
   reqObj->callHandler();
 }
 
 void after_work(uv_work_t *req, int status) {
-  TCP::TCPServerImpl::Request *reqObj = static_cast<TCP::TCPServerImpl::Request *>(req->data);
+  TCP::ServerImpl::Request *reqObj = static_cast<TCP::ServerImpl::Request *>(req->data);
 
   reqObj->m_responseData.seekg(0, std::ios::end);
   int size = reqObj->m_responseData.tellg();
@@ -79,7 +79,7 @@ void after_work(uv_work_t *req, int status) {
 
 void writeCB(uv_write_t* req, int status) {
   // TODO: check status
-  TCP::TCPServerImpl::Request *reqObj = static_cast<TCP::TCPServerImpl::Request *>(req->data);
+  TCP::ServerImpl::Request *reqObj = static_cast<TCP::ServerImpl::Request *>(req->data);
   std::cout << "closing stream" << std::endl;
   uv_close((uv_handle_t*)(reqObj->m_stream), NULL);
   free(reqObj->m_bufBase);
@@ -106,12 +106,12 @@ void readCB(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
     return;
   }  
 
-  TCP::TCPServerImpl* srv = static_cast<TCP::TCPServerImpl *>(stream->data);
+  TCP::ServerImpl* srv = static_cast<TCP::ServerImpl *>(stream->data);
 
   // std::cout << "Buf len: " << buf->len << std::endl;
   // std::cout << "Actually read: " << nread << std::endl;
 
-  TCP::TCPServerImpl::Request *reqObj = new TCP::TCPServerImpl::Request(buf->base, nread, stream, srv->m_handler);
+  TCP::ServerImpl::Request *reqObj = new TCP::ServerImpl::Request(buf->base, nread, stream, srv->m_handler);
   free(buf->base);
   
   uv_work_t req;
@@ -131,7 +131,7 @@ void uvConnectionCB(uv_stream_t *server, int status)
     return;
   }
 
-  TCP::TCPServerImpl* srv = static_cast<TCP::TCPServerImpl *>(server->data);
+  TCP::ServerImpl* srv = static_cast<TCP::ServerImpl *>(server->data);
 
   uv_tcp_t *client = (uv_tcp_t*) malloc(sizeof(uv_tcp_t));
   uv_tcp_init(srv->m_loop, client);
@@ -146,27 +146,27 @@ void uvConnectionCB(uv_stream_t *server, int status)
   }
 }
 
-TCP::TCPServer::TCPServer(TCP::TCPServer::RequestHandlerPtr handler)
-  : m_tcpServerImpl(new TCPServerImpl(handler))
+TCP::Server::Server(TCP::Server::RequestHandlerPtr handler)
+  : m_tcpServerImpl(new ServerImpl(handler))
 {}
 
-TCP::TCPServer::~TCPServer()
+TCP::Server::~Server()
 {}
 
 
-TCP::TCPServerImpl::Request::Request(const char *buf, unsigned len, uv_stream_t *stream, TCPServer::RequestHandlerPtr handler) 
+TCP::ServerImpl::Request::Request(const char *buf, unsigned len, uv_stream_t *stream, Server::RequestHandlerPtr handler) 
   : m_stream(stream)
   , m_handler(handler)
 {
   m_requestData.write(buf, len);
 }
 
-void TCP::TCPServerImpl::Request::callHandler()
+void TCP::ServerImpl::Request::callHandler()
 {
   this->m_handler->onRequest(this->m_requestData, this->m_responseData);
 }
 
-TCP::TCPServerImpl::TCPServerImpl(TCP::TCPServer::RequestHandlerPtr handler)
+TCP::ServerImpl::ServerImpl(TCP::Server::RequestHandlerPtr handler)
   : m_loop(nullptr)
   ,  m_handler(handler)
 {
@@ -188,6 +188,6 @@ TCP::TCPServerImpl::TCPServerImpl(TCP::TCPServer::RequestHandlerPtr handler)
   uv_run(m_loop, UV_RUN_DEFAULT);
 }
 
-void TCP::TCPServerImpl::log(const std::string &msg) {
-  std::cout << "TCPServerImpl: " << msg << std::endl;
+void TCP::ServerImpl::log(const std::string &msg) {
+  std::cout << "ServerImpl: " << msg << std::endl;
 }
