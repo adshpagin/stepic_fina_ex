@@ -39,6 +39,8 @@ int main(int argc, char **argv) {
       break;
     };
   };
+
+  daemon(1, 0);
   
   g_log.write("Server has been started: ");
   g_log.write("Host: " + ip);
