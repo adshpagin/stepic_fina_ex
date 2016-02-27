@@ -22,9 +22,9 @@ HTTP::Request::Request(const std::string &str, unsigned id)
     m_method = HTTP::Method::UNSUPPORTED;
 
   if (paramsPos == std::string::npos) {
-    m_path = firstLine.substr(pathPos, protoVersPos - pathPos);
+    m_path = firstLine.substr(pathPos+1, protoVersPos - pathPos - 1);
   } else { 
-    m_path = firstLine.substr(pathPos, paramsPos - pathPos);
+    m_path = firstLine.substr(pathPos+1, paramsPos - pathPos - 1);
     m_params = firstLine.substr(paramsPos + 1, protoVersPos - paramsPos - 1);
   }
 }
@@ -46,7 +46,6 @@ void HTTP::Server::onRequest(const TCP::MsgData &req, unsigned reqID, TCP::MsgDa
   else if (request.m_method == HTTP::Method::POST)
     g_log.write("Method: POST");
 
-  g_log.write("Method: ");
   g_log.write("Path: " + request.m_path);
   g_log.write("Params: " + request.m_params);
 
@@ -58,7 +57,7 @@ void HTTP::Server::onRequest(const TCP::MsgData &req, unsigned reqID, TCP::MsgDa
   if (response.m_code == HTTP::StatusCode::OK_200)
     resp << "200 OK"<< std::endl;
   else if (response.m_code == HTTP::StatusCode::NOT_FOUND_404)
-    resp << "404 NOT FOUND"<< std::endl;
+    resp << "404 Not Found"<< std::endl;
 
 
   auto t = std::time(nullptr);
