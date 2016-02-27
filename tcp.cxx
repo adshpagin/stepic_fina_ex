@@ -16,7 +16,7 @@ namespace TCP {
 
   class ServerImpl {
   public:
-    ServerImpl(Server::RequestHandlerPtr handler);
+    ServerImpl(const std::string &ip, unsigned port, Server::RequestHandlerPtr handler);
   private:
 
     class Request {
@@ -158,8 +158,8 @@ void uvConnectionCB(uv_stream_t *server, int status)
   }
 }
 
-TCP::Server::Server(TCP::Server::RequestHandlerPtr handler)
-  : m_tcpServerImpl(new ServerImpl(handler))
+TCP::Server::Server(const std::string &ip, unsigned port, TCP::Server::RequestHandlerPtr handler)
+  : m_tcpServerImpl(new ServerImpl(ip, port, handler))
 {}
 
 TCP::Server::~Server()
@@ -178,7 +178,7 @@ void TCP::ServerImpl::Request::callHandler()
   this->m_handler->onRequest(this->m_requestData, this->m_reqID, this->m_responseData);
 }
 
-TCP::ServerImpl::ServerImpl(TCP::Server::RequestHandlerPtr handler)
+TCP::ServerImpl::ServerImpl(const std::string &ip, unsigned port, TCP::Server::RequestHandlerPtr handler)
   : m_loop(nullptr)
   , m_reqNum(0)
   , m_handler(handler)
@@ -189,7 +189,8 @@ TCP::ServerImpl::ServerImpl(TCP::Server::RequestHandlerPtr handler)
   m_server.data = static_cast<void *>(this);
 
   struct sockaddr_in addr;
-  uv_ip4_addr("127.0.0.1", 8081, &addr);
+  // uv_ip4_addr("127.0.0.1", 8081, &addr);
+  uv_ip4_addr(ip.c_str(), port, &addr);
 
   uv_tcp_bind(&m_server, (const struct sockaddr*)&addr, 0);
 

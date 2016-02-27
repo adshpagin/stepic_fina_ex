@@ -42,9 +42,10 @@ namespace HTTP {
     };
     typedef std::shared_ptr<RequestHandler> RequestHandlerPtr;
     
-    Server(RequestHandlerPtr handler);
+    Server(const std::string &staticDir, RequestHandlerPtr handler);
   private:
     RequestHandlerPtr m_handler;
+    std::string m_staticDir;
   };
 }
 

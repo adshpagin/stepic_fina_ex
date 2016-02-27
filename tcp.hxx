@@ -19,7 +19,7 @@ namespace TCP {
     };
     typedef std::shared_ptr<RequestHandler> RequestHandlerPtr; 
 
-    Server(RequestHandlerPtr handler);
+    Server(const std::string &ip, unsigned port, RequestHandlerPtr handler);
     ~Server();
   private:
     typedef std::unique_ptr<ServerImpl> ServerImplPtr;

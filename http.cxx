@@ -32,8 +32,9 @@ HTTP::Request::Request(const std::string &str, unsigned id)
 HTTP::Response::Response()
 {}
 
-HTTP::Server::Server(RequestHandlerPtr handler)
+HTTP::Server::Server(const std::string &staticDir, RequestHandlerPtr handler)
   : m_handler(handler)
+  , m_staticDir(staticDir)
 {}
 
 void HTTP::Server::onRequest(const TCP::MsgData &req, unsigned reqID, TCP::MsgData &resp)
