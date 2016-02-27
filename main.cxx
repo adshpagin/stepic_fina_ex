@@ -2,12 +2,20 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <thread>
 #include <unistd.h>
 
 #include "log.hxx"
 #include "tcp.hxx"
 #include "http.hxx"
 #include "logic.hxx"
+
+void networkLoop(const std::string &ip, unsigned port, const std::string &filesFolder)
+{
+  HTTP::Server::RequestHandlerPtr logic = HTTP::Server::RequestHandlerPtr(new Logic::RequestHandler);
+  TCP::Server::RequestHandlerPtr httpServer = TCP::Server::RequestHandlerPtr(new HTTP::Server(filesFolder, logic));
+  TCP::Server tcpServer(ip, port, httpServer);
+}
 
 int main(int argc, char **argv) {
 
@@ -37,9 +45,8 @@ int main(int argc, char **argv) {
   g_log.write("Port: " + std::to_string(port));
   g_log.write("Static dir: " + filesFolder);
 
-  HTTP::Server::RequestHandlerPtr logic = HTTP::Server::RequestHandlerPtr(new Logic::RequestHandler);
-  TCP::Server::RequestHandlerPtr httpServer = TCP::Server::RequestHandlerPtr(new HTTP::Server(filesFolder, logic));
-  TCP::Server tcpServer(ip, port, httpServer);
+  std::thread networkThread(networkLoop, ip, port, filesFolder);
+  networkThread.join();
 
   return 0;
 }
