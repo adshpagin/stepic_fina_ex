@@ -15,7 +15,7 @@ namespace TCP {
   public:
     class RequestHandler {
     public:
-      virtual void onRequest(const MsgData &req, MsgData &resp) {};
+      virtual void onRequest(const MsgData &req, unsigned reqID, MsgData &resp) {};
     };
     typedef std::shared_ptr<RequestHandler> RequestHandlerPtr; 
 

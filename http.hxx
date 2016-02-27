@@ -1,3 +1,6 @@
+#ifndef HTTP_HXX
+#define HTTP_HXX
+
 #include <string>
 #include "tcp.hxx"
 
@@ -15,10 +18,11 @@ namespace HTTP {
   };
 
   struct Request {
-    Request(const std::string &str);
+    Request(const std::string &str, unsigned id);
     Method      m_method;
     std::string m_path;
     std::string m_params;
+    unsigned    m_id;
   };
   
   struct Response {
@@ -30,7 +34,7 @@ namespace HTTP {
 
   class Server : public TCP::Server::RequestHandler {
   public:
-    virtual void onRequest(const TCP::MsgData &req, TCP::MsgData &resp);
+    virtual void onRequest(const TCP::MsgData &req, unsigned reqID, TCP::MsgData &resp);
 
     class RequestHandler {
     public:
@@ -43,3 +47,5 @@ namespace HTTP {
     RequestHandlerPtr m_handler;
   };
 }
+
+#endif

@@ -1,8 +1,11 @@
 #include <iostream>
 #include <ctime>
+
+#include "log.hxx"
 #include "http.hxx"
 
-HTTP::Request::Request(const std::string &str) 
+HTTP::Request::Request(const std::string &str, unsigned id) 
+  : m_id(id)
 {
   std::string firstLine = str.substr(0, str.find_first_of("\n"));
 
@@ -33,9 +36,20 @@ HTTP::Server::Server(RequestHandlerPtr handler)
   : m_handler(handler)
 {}
 
-void HTTP::Server::onRequest(const TCP::MsgData &req, TCP::MsgData &resp)
+void HTTP::Server::onRequest(const TCP::MsgData &req, unsigned reqID, TCP::MsgData &resp)
 {
-  HTTP::Request request(req.str());
+  HTTP::Request request(req.str(), reqID);
+
+  g_log.write("HTTP: request id " + std::to_string(reqID) + " received and parsed: ");
+  if (request.m_method == HTTP::Method::GET)
+    g_log.write("Method: GET");
+  else if (request.m_method == HTTP::Method::POST)
+    g_log.write("Method: POST");
+
+  g_log.write("Method: ");
+  g_log.write("Path: " + request.m_path);
+  g_log.write("Params: " + request.m_params);
+
   HTTP::Response response;
   m_handler->onRequest(request, response);
   
@@ -63,6 +77,10 @@ void HTTP::Server::onRequest(const TCP::MsgData &req, TCP::MsgData &resp)
   response.m_body.seekg(0, std::ios::beg);
 
   resp << "Content-Length: " << len << std::endl << std::endl;
+
+  g_log.write("HTTP: Response id " + std::to_string(reqID) + ": ");
+  g_log.write(resp.str());
+  g_log.write("< body >");
 
   resp << response.m_body.str() << std::endl << std::endl;
 };

@@ -2,6 +2,8 @@
 #include <memory>
 #include <thread>
 #include <uv.h>
+
+#include "log.hxx"
 #include "tcp.hxx"
 
 void uvConnectionCB(uv_stream_t *, int);
@@ -15,7 +17,6 @@ namespace TCP {
   class ServerImpl {
   public:
     ServerImpl(Server::RequestHandlerPtr handler);
-    void log(const std::string &msg);
   private:
 
     class Request {
@@ -23,13 +24,15 @@ namespace TCP {
       Request(const char *buf,
               unsigned len,
               uv_stream_t *stream,
-              Server::RequestHandlerPtr handler);
+              Server::RequestHandlerPtr handler,
+              unsigned id);
       void callHandler();
     private:
       MsgData      m_requestData;
       MsgData      m_responseData;
       uv_stream_t *m_stream;
       char        *m_bufBase;
+      unsigned     m_reqID;
 
       Server::RequestHandlerPtr m_handler;
       
@@ -39,6 +42,8 @@ namespace TCP {
 
     uv_loop_t *m_loop;
     uv_tcp_t   m_server;
+
+    unsigned   m_reqNum;
 
     Server::RequestHandlerPtr m_handler;
 
@@ -80,7 +85,7 @@ void after_work(uv_work_t *req, int status) {
 void writeCB(uv_write_t* req, int status) {
   // TODO: check status
   TCP::ServerImpl::Request *reqObj = static_cast<TCP::ServerImpl::Request *>(req->data);
-  std::cout << "closing stream" << std::endl;
+  g_log.write("TCP: closing stream");
   uv_close((uv_handle_t*)(reqObj->m_stream), NULL);
   free(reqObj->m_bufBase);
   delete reqObj;
@@ -90,28 +95,31 @@ void writeCB(uv_write_t* req, int status) {
 void readCB(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 
   if (nread == UV_EOF) {
-    std::cout << "readCB: EOF reached" << std::endl;
+    g_log.write("TCP: EOF reached");
     return;
   }
 
   if (nread == 0) {
-    std::cout << "readCB: nread == 0, it means EAGAIN" << std::endl;
+    g_log.write("TCP: warning: nread == 0, it means EAGAIN");
     free(buf->base);
     return;
   }
     
   if (nread < 0) {
-    std::cout << "readCB: error has occured, nread == " << nread << std::endl;
+    g_log.write("TCP: error has occured, nread == " + std::to_string(nread));
     free(buf->base);
     return;
   }  
 
   TCP::ServerImpl* srv = static_cast<TCP::ServerImpl *>(stream->data);
+  srv->m_reqNum++;
 
-  // std::cout << "Buf len: " << buf->len << std::endl;
-  // std::cout << "Actually read: " << nread << std::endl;
+  std::string msg(buf->base, nread);
+  g_log.write("Request received, id " + std::to_string(srv->m_reqNum) + ": ");
+  g_log.write(msg);
 
-  TCP::ServerImpl::Request *reqObj = new TCP::ServerImpl::Request(buf->base, nread, stream, srv->m_handler);
+
+  TCP::ServerImpl::Request *reqObj = new TCP::ServerImpl::Request(buf->base, nread, stream, srv->m_handler, srv->m_reqNum);
   free(buf->base);
   
   uv_work_t req;
@@ -127,7 +135,7 @@ void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf) {
 void uvConnectionCB(uv_stream_t *server, int status)
 {
   if (status < 0) {
-    std::cerr << "New connection error: " << uv_strerror(status) << std::endl;
+    g_log.write("TCP: error new connection error: " + std::string(uv_strerror(status)));
     return;
   }
 
@@ -138,7 +146,11 @@ void uvConnectionCB(uv_stream_t *server, int status)
   if (uv_accept(server, (uv_stream_t*) client) == 0) {
     client->data = static_cast<void *>(srv);
     std::thread::id this_id = std::this_thread::get_id();
-    std::cout << "new connection is established. Thr_id: " << this_id << std::endl;
+
+    std::stringstream ss;
+    ss << "TCP: new connection is established. Thr_id: " << this_id;
+    g_log.write(ss.str());
+
     uv_read_start((uv_stream_t*) client, allocBuffer, readCB);
   }
   else {
@@ -153,9 +165,9 @@ TCP::Server::Server(TCP::Server::RequestHandlerPtr handler)
 TCP::Server::~Server()
 {}
 
-
-TCP::ServerImpl::Request::Request(const char *buf, unsigned len, uv_stream_t *stream, Server::RequestHandlerPtr handler) 
+TCP::ServerImpl::Request::Request(const char *buf, unsigned len, uv_stream_t *stream, Server::RequestHandlerPtr handler, unsigned id) 
   : m_stream(stream)
+  , m_reqID(id)
   , m_handler(handler)
 {
   m_requestData.write(buf, len);
@@ -163,12 +175,13 @@ TCP::ServerImpl::Request::Request(const char *buf, unsigned len, uv_stream_t *st
 
 void TCP::ServerImpl::Request::callHandler()
 {
-  this->m_handler->onRequest(this->m_requestData, this->m_responseData);
+  this->m_handler->onRequest(this->m_requestData, this->m_reqID, this->m_responseData);
 }
 
 TCP::ServerImpl::ServerImpl(TCP::Server::RequestHandlerPtr handler)
   : m_loop(nullptr)
-  ,  m_handler(handler)
+  , m_reqNum(0)
+  , m_handler(handler)
 {
   m_loop = uv_default_loop();
   uv_tcp_init(m_loop, &m_server);
@@ -182,12 +195,8 @@ TCP::ServerImpl::ServerImpl(TCP::Server::RequestHandlerPtr handler)
 
   int r = uv_listen((uv_stream_t*) &m_server, 128, uvConnectionCB);
   if (r) {
-    std::cerr << "Listen error: " << uv_strerror(r) << std::endl;
+    g_log.write("Listen error: " + std::string(uv_strerror(r)));
   }
 
   uv_run(m_loop, UV_RUN_DEFAULT);
-}
-
-void TCP::ServerImpl::log(const std::string &msg) {
-  std::cout << "ServerImpl: " << msg << std::endl;
 }
