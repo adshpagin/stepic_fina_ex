@@ -22,6 +22,8 @@ Log::Logger& Log::Logger::operator=( Log::Logger& logger)
 
 void Log::Logger::write(const std::string &msg)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
   auto t = std::time(nullptr);
   auto tm = *std::localtime(&t);
   char buffer[256];

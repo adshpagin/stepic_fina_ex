@@ -2,6 +2,7 @@
 #define LOG_HXX
 
 #include <fstream>
+#include <mutex>
 
 namespace Log {
 
@@ -11,6 +12,7 @@ namespace Log {
     Logger( const Logger&);
     Logger& operator=( Logger& );
     std::ofstream m_logFile;
+    std::mutex m_mutex;
   public:
     Logger();
     void write(const std::string &msg);
