@@ -7,7 +7,7 @@ LD=g++
 
 OBJ-DIR=.objs
 
-SOURCES=main.cxx tcp.cxx http.cxx log.cxx
+SOURCES=main.cxx tcp.cxx http.cxx log.cxx logic.cxx
 
 OBJECTS=$(addprefix $(OBJ-DIR)/,$(SOURCES:.cxx=.o))
 DEPS=$(OBJECTS:.o=.d)
